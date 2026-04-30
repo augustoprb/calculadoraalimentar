@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Alimentar — Modo Caverna</title>
+<style>
+:root{--bg:#191919;--bg2:#222222;--bg3:#2a2a2a;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#e2e2de;--text2:#9a9a96;--text3:#555552;--ok:#4caf7a;--nok:#e05555;--warn:#e0a030;--mono:'JetBrains Mono','Fira Mono','Courier New',monospace;--r:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;}
+.page{max-width:600px;margin:0 auto;padding:24px 18px 60px;}
+.hd{margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--border);}
+.hd-tag{font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.hd-title{font-size:16px;font-weight:600;margin-bottom:3px;}
+.hd-meta{font-size:10px;color:var(--text3);}
+.search-wrap{position:relative;margin-bottom:8px;}
+.search-in{width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:12px;padding:9px 12px;outline:none;transition:border-color .15s;}
+.search-in:focus{border-color:var(--border2);background:var(--bg3);}
+.search-in::placeholder{color:var(--text3);}
+.dropdown{display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.dropdown.open{display:block;}
+.dd-item{padding:8px 12px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--border);}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:hover,.dd-item.active{background:var(--bg2);color:var(--text);}
+.dd-kcal{float:right;color:var(--text3);font-size:11px;}
+.add-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;}
+.qty-in{width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:12px;padding:9px 10px;outline:none;transition:border-color .15s;}
+.qty-in:focus{border-color:var(--border2);}
+.qty-in::placeholder{color:var(--text3);}
+.unit-lbl{font-size:11px;color:var(--text3);white-space:nowrap;}
+.meal-sel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);color:var(--text2);font-family:var(--mono);font-size:11px;padding:9px 10px;outline:none;cursor:pointer;}
+.add-btn{background:transparent;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;padding:9px 14px;transition:all .15s;white-space:nowrap;}
+.add-btn:hover:not(:disabled){background:var(--bg3);color:var(--text);}
+.add-btn:disabled{opacity:.3;cursor:not-allowed;}
+.meals{display:grid;gap:8px;margin-bottom:16px;}
+.meal-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.meal-hd{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:0.5px solid var(--border);}
+.meal-name{font-size:11px;color:var(--text2);letter-spacing:.03em;}
+.meal-sum{font-size:10px;color:var(--text3);}
+.meal-body{padding:2px 0;}
+.meal-item{display:flex;justify-content:space-between;align-items:center;padding:5px 12px;}
+.meal-item:hover{background:var(--bg3);}
+.mi-name{color:var(--text2);font-size:11px;}
+.mi-qty{color:var(--text3);font-size:10px;margin-left:4px;}
+.mi-val{color:var(--text3);font-size:11px;display:flex;gap:10px;align-items:center;}
+.mi-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;transition:color .1s;padding:0 0 0 4px;}
+.mi-remove:hover{color:var(--nok);}
+.meal-empty{padding:8px 12px;font-size:11px;color:var(--text3);font-style:italic;}
+.sep{height:0.5px;background:var(--border);margin:14px 0;}
+.extras{display:flex;gap:8px;margin-bottom:14px;}
+.extra-card{flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;}
+.extra-lbl{font-size:10px;color:var(--text3);margin-bottom:5px;letter-spacing:.03em;}
+.water-row{display:flex;align-items:baseline;gap:5px;}
+.water-in{width:70px;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:18px;font-weight:600;outline:none;}
+.water-in::placeholder{color:var(--text3);}
+.water-unit{font-size:10px;color:var(--text3);}
+.cb-wrap{display:flex;align-items:center;gap:8px;margin-top:4px;}
+.cb-wrap input{width:13px;height:13px;accent-color:var(--ok);cursor:pointer;}
+.cb-wrap label{font-size:11px;color:var(--text2);cursor:pointer;}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.tc{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:11px 13px;}
+.tc-l{font-size:10px;color:var(--text2);margin-bottom:3px;letter-spacing:.02em;}
+.tc-v{font-size:22px;font-weight:600;}
+.tc-s{font-size:10px;color:var(--text3);margin-top:2px;}
+.ok{color:var(--ok);}
+.nok{color:var(--nok);}
+.neutral{color:var(--text);}
+.bar{height:3px;background:var(--border2);border-radius:2px;margin-bottom:8px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width .4s ease,background .4s;}
+.saldo{font-size:11px;padding:7px 11px;border-radius:var(--r);background:var(--bg2);border:0.5px solid var(--border);margin-bottom:10px;}
+.copy-btn{width:100%;background:transparent;border:0.5px solid var(--border);border-radius:var(--r);color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.03em;padding:10px;transition:all .15s;}
+.copy-btn:hover{background:var(--bg2);color:var(--text2);border-color:var(--border2);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hd">
+    <div class="hd-tag">modo caverna</div>
+    <div class="hd-title">🍽️ Calculadora Alimentar</div>
+    <div class="hd-meta">meta: 1.850–2.050 kcal · proteína ≥115g · água ≥3,5L · banco TACO</div>
+  </div>
+
+  <div class="search-wrap">
+    <input class="search-in" id="searchIn" type="text" placeholder="buscar alimento... (ex: ovo, arroz, frango)" autocomplete="off" oninput="buscar()" onkeydown="keyNav(event)">
+    <div class="dropdown" id="dropdown"></div>
+  </div>
+  <div class="add-row">
+    <input class="qty-in" id="qtyIn" type="number" min="1" max="2000" step="1" placeholder="gramas" onkeydown="if(event.key==='Enter')adicionar()">
+    <span class="unit-lbl">g / ml</span>
+    <select class="meal-sel" id="mealSel">
+      <option value="cafe">☀️ Café</option>
+      <option value="almoco">🍽️ Almoço</option>
+      <option value="snack">🍎 Snack</option>
+      <option value="jantar" selected>🌙 Jantar</option>
+    </select>
+    <button class="add-btn" id="addBtn" onclick="adicionar()" disabled>+ adicionar</button>
+  </div>
+
+  <div class="meals" id="mealCards"></div>
+  <div class="sep"></div>
+
+  <div class="extras">
+    <div class="extra-card">
+      <div class="extra-lbl">💧 Água consumida</div>
+      <div class="water-row">
+        <input class="water-in" id="agua" type="number" min="0" max="10" step="0.5" placeholder="0.0" oninput="atualizar()">
+        <span class="water-unit">litros</span>
+      </div>
+    </div>
+    <div class="extra-card">
+      <div class="extra-lbl">🎉 Refeição livre</div>
+      <div class="cb-wrap">
+        <input type="checkbox" id="livre" onchange="atualizar()">
+        <label for="livre">domingo = protocolo suspenso</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="totals">
+    <div class="tc"><div class="tc-l">📊 Total kcal</div><div class="tc-v neutral" id="tv-kcal">0</div><div class="tc-s" id="ts-kcal">meta: 1.850–2.050</div></div>
+    <div class="tc"><div class="tc-l">💪 Proteína (g)</div><div class="tc-v neutral" id="tv-prot">0</div><div class="tc-s" id="ts-prot">meta: ≥115g</div></div>
+    <div class="tc"><div class="tc-l">💧 Água (L)</div><div class="tc-v neutral" id="tv-agua">0.0</div><div class="tc-s" id="ts-agua">meta: ≥3,5L</div></div>
+  </div>
+  <div class="bar"><div class="bar-fill" id="barFill" style="width:0%;background:var(--ok);"></div></div>
+  <div class="saldo" id="saldoTxt" style="color:var(--text3);">adicione alimentos para calcular</div>
+  <button class="copy-btn" id="copyBtn" onclick="copiar()">copiar para o notion → 📊 0 kcal · 💪 0g · 💧 0L</button>
+</div>
+
+<script>
+const FOODS=[
+  {n:"Ovo inteiro cozido",k:146,p:13.3},{n:"Ovo inteiro mexido c/ manteiga",k:184,p:12.0},{n:"Ovo inteiro frito",k:196,p:13.1},
+  {n:"Clara de ovo cozida",k:52,p:10.9},{n:"Gema de ovo cozida",k:322,p:15.9},
+  {n:"Arroz branco cozido",k:128,p:2.5},{n:"Arroz integral cozido",k:124,p:2.6},{n:"Arroz branco cru",k:360,p:7.0},
+  {n:"Feijão carioca cozido",k:77,p:4.8},{n:"Feijão preto cozido",k:86,p:5.3},{n:"Lentilha cozida",k:93,p:6.3},
+  {n:"Macarrão cozido",k:158,p:5.5},{n:"Macarrão integral cozido",k:149,p:5.8},
+  {n:"Pão francês",k:298,p:8.0},{n:"Pão de forma integral",k:253,p:8.6},{n:"Pão de forma branco",k:267,p:8.0},
+  {n:"Tapioca",k:346,p:0.7},{n:"Aveia em flocos",k:394,p:13.9},{n:"Granola",k:440,p:9.0},
+  {n:"Frango peito grelhado s/ pele",k:163,p:31.5},{n:"Frango coxa s/ pele cozida",k:152,p:26.0},
+  {n:"Frango sobrecoxa s/ pele assada",k:160,p:22.0},{n:"Frango sobrecoxa c/ pele assada",k:240,p:20.0},
+  {n:"Frango asa assada c/ pele",k:240,p:20.0},{n:"Frango inteiro assado s/ pele",k:187,p:28.0},
+  {n:"Carne bovina coxão mole grelhado",k:155,p:25.0},{n:"Carne bovina patinho grelhado",k:153,p:27.0},
+  {n:"Carne moída refogada",k:195,p:22.0},{n:"Alcatra grelhada",k:163,p:28.0},{n:"Picanha grelhada",k:253,p:26.0},
+  {n:"Fígado bovino refogado",k:148,p:21.0},{n:"Costela bovina cozida",k:294,p:20.0},{n:"Filé mignon grelhado",k:195,p:29.0},
+  {n:"Porco lombo assado",k:197,p:28.0},{n:"Porco pernil assado",k:217,p:26.0},
+  {n:"Linguiça calabresa grelhada",k:346,p:14.0},{n:"Linguiça toscana grelhada",k:316,p:16.0},
+  {n:"Atum ao natural lata",k:100,p:22.4},{n:"Atum em óleo lata drenado",k:200,p:26.0},
+  {n:"Sardinha ao molho de tomate lata",k:130,p:18.0},{n:"Sardinha ao azeite lata",k:190,p:22.0},
+  {n:"Tilápia grelhada",k:96,p:20.0},{n:"Salmão grelhado",k:182,p:24.0},
+  {n:"Camarão cozido",k:99,p:20.8},{n:"Bacalhau dessalgado cozido",k:117,p:26.0},
+  {n:"Leite integral",k:61,p:3.2},{n:"Leite desnatado",k:35,p:3.4},
+  {n:"Iogurte integral natural",k:66,p:3.8},{n:"Iogurte grego integral",k:115,p:5.7},
+  {n:"Queijo muçarela",k:314,p:25.0},{n:"Queijo parmesão ralado",k:456,p:35.0},
+  {n:"Queijo cottage",k:98,p:11.0},{n:"Queijo minas frescal",k:264,p:17.4},
+  {n:"Requeijão cremoso",k:253,p:7.5},{n:"Manteiga",k:717,p:0.9},
+  {n:"Whey protein concentrado",k:367,p:80.0},{n:"Caseína",k:360,p:82.0},
+  {n:"Banana prata",k:98,p:1.3},{n:"Maçã",k:56,p:0.3},{n:"Laranja",k:37,p:1.0},
+  {n:"Mamão papaia",k:40,p:0.5},{n:"Abacate",k:96,p:1.2},{n:"Morango",k:30,p:0.7},
+  {n:"Uva",k:69,p:0.6},{n:"Manga",k:64,p:0.4},{n:"Melancia",k:30,p:0.6},{n:"Abacaxi",k:48,p:0.9},
+  {n:"Batata inglesa cozida",k:52,p:1.2},{n:"Batata doce cozida",k:77,p:1.4},
+  {n:"Mandioca cozida",k:125,p:0.6},{n:"Inhame cozido",k:93,p:2.1},
+  {n:"Abobrinha refogada",k:22,p:1.8},{n:"Brócolis cozido",k:35,p:2.9},
+  {n:"Couve-flor cozida",k:25,p:2.4},{n:"Cenoura crua",k:34,p:1.3},
+  {n:"Alface",k:11,p:1.3},{n:"Tomate",k:15,p:1.1},{n:"Pepino",k:10,p:0.7},
+  {n:"Espinafre cozido",k:23,p:2.9},{n:"Chuchu cozido",k:22,p:0.9},
+  {n:"Couve refogada",k:45,p:3.7},{n:"Beterraba cozida",k:43,p:1.9},{n:"Quiabo cozido",k:25,p:2.0},
+  {n:"Azeite de oliva",k:884,p:0.0},{n:"Óleo de soja",k:884,p:0.0},
+  {n:"Amendoim torrado s/ sal",k:567,p:25.0},{n:"Castanha do Pará",k:656,p:14.3},
+  {n:"Castanha de caju torrada",k:570,p:15.3},{n:"Amêndoa",k:579,p:21.2},
+  {n:"Açúcar refinado",k:387,p:0.0},{n:"Mel",k:304,p:0.3},
+  {n:"Café preto sem açúcar",k:2,p:0.3},{n:"Suco de laranja natural",k:45,p:0.7},
+  {n:"Refrigerante cola",k:41,p:0.0},{n:"Cerveja",k:43,p:0.5},
+];
+
+const S={items:{cafe:[],almoco:[],snack:[],jantar:[]},sel:null,idx:-1};
+const MM={cafe:{label:'☀️ Café da manhã'},almoco:{label:'🍽️ Almoço'},snack:{label:'🍎 Snack(s)'},jantar:{label:'🌙 Jantar'}};
+
+function buscar(){
+  const q=document.getElementById('searchIn').value.toLowerCase().trim();
+  const dd=document.getElementById('dropdown');
+  S.sel=null; S.idx=-1;
+  document.getElementById('addBtn').disabled=true;
+  if(q.length<2){dd.classList.remove('open');return;}
+  const m=FOODS.filter(f=>f.n.toLowerCase().includes(q)).slice(0,12);
+  if(!m.length){dd.classList.remove('open');return;}
+  dd.innerHTML=m.map((f,i)=>`<div class="dd-item" data-i="${FOODS.indexOf(f)}" onmousedown="selFood(${FOODS.indexOf(f)})">${f.n}<span class="dd-kcal">${f.k} kcal/100g</span></div>`).join('');
+  dd.classList.add('open');
+}
+
+function selFood(i){
+  S.sel=FOODS[i];
+  document.getElementById('searchIn').value=FOODS[i].n;
+  document.getElementById('dropdown').classList.remove('open');
+  document.getElementById('addBtn').disabled=false;
+  document.getElementById('qtyIn').focus();
+  document.getElementById('qtyIn').select();
+}
+
+function keyNav(e){
+  const dd=document.getElementById('dropdown');
+  const its=dd.querySelectorAll('.dd-item');
+  if(!its.length)return;
+  if(e.key==='ArrowDown'){S.idx=Math.min(S.idx+1,its.length-1);its.forEach((el,i)=>el.classList.toggle('active',i===S.idx));e.preventDefault();}
+  else if(e.key==='ArrowUp'){S.idx=Math.max(S.idx-1,0);its.forEach((el,i)=>el.classList.toggle('active',i===S.idx));e.preventDefault();}
+  else if(e.key==='Enter'&&S.idx>=0){its[S.idx].dispatchEvent(new MouseEvent('mousedown'));}
+  else if(e.key==='Escape'){dd.classList.remove('open');}
+}
+
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('dropdown').classList.remove('open');});
+
+function adicionar(){
+  if(!S.sel)return;
+  const qty=parseFloat(document.getElementById('qtyIn').value);
+  if(!qty||qty<=0){document.getElementById('qtyIn').focus();return;}
+  const meal=document.getElementById('mealSel').value;
+  const r=qty/100;
+  S.items[meal].push({name:S.sel.n,qty,kcal:Math.round(S.sel.k*r),protein:parseFloat((S.sel.p*r).toFixed(1))});
+  document.getElementById('searchIn').value='';
+  document.getElementById('qtyIn').value='';
+  S.sel=null;
+  document.getElementById('addBtn').disabled=true;
+  document.getElementById('searchIn').focus();
+  renderMeals(); atualizar();
+}
+
+function remover(meal,i){S.items[meal].splice(i,1);renderMeals();atualizar();}
+
+function renderMeals(){
+  document.getElementById('mealCards').innerHTML=Object.keys(MM).map(key=>{
+    const its=S.items[key];
+    const tK=its.reduce((s,i)=>s+i.kcal,0);
+    const tP=parseFloat(its.reduce((s,i)=>s+i.protein,0).toFixed(1));
+    const sum=its.length?`${tK} kcal · ${tP}g prot`:'';
+    const rows=its.length
+      ?its.map((it,i)=>`<div class="meal-item"><span class="mi-name">${it.name}<span class="mi-qty">(${it.qty}g)</span></span><span class="mi-val"><span>${it.kcal} kcal · ${it.protein}g</span><button class="mi-remove" onclick="remover('${key}',${i})">×</button></span></div>`).join('')
+      :`<div class="meal-empty">nenhum alimento adicionado</div>`;
+    return `<div class="meal-card"><div class="meal-hd"><span class="meal-name">${MM[key].label}</span><span class="meal-sum">${sum}</span></div><div class="meal-body">${rows}</div></div>`;
+  }).join('');
+}
+
+function atualizar(){
+  const all=[...S.items.cafe,...S.items.almoco,...S.items.snack,...S.items.jantar];
+  const kcal=all.reduce((s,i)=>s+i.kcal,0);
+  const prot=parseFloat(all.reduce((s,i)=>s+i.protein,0).toFixed(1));
+  const agua=parseFloat(document.getElementById('agua').value)||0;
+  const livre=document.getElementById('livre').checked;
+
+  const ke=document.getElementById('tv-kcal'),ks=document.getElementById('ts-kcal');
+  ke.textContent=kcal;
+  if(livre){ke.className='tc-v neutral';ks.textContent='🎉 refeição livre';}
+  else if(kcal===0){ke.className='tc-v neutral';ks.textContent='meta: 1.850–2.050';}
+  else if(kcal>=1850&&kcal<=2050){ke.className='tc-v ok';ks.textContent='✓ protocolo ok';}
+  else if(kcal<1850){ke.className='tc-v nok';ks.textContent=`✗ faltam ${1850-kcal} kcal`;}
+  else{ke.className='tc-v nok';ks.textContent=`✗ ${kcal-2050} acima`;}
+
+  const pe=document.getElementById('tv-prot'),ps=document.getElementById('ts-prot');
+  pe.textContent=prot;
+  if(prot===0){pe.className='tc-v neutral';ps.textContent='meta: ≥115g';}
+  else if(prot>=115){pe.className='tc-v ok';ps.textContent='✓ meta atingida';}
+  else{pe.className='tc-v nok';ps.textContent=`✗ faltam ${(115-prot).toFixed(1)}g`;}
+
+  const ae=document.getElementById('tv-agua'),as2=document.getElementById('ts-agua');
+  ae.textContent=agua.toFixed(1);
+  if(agua===0){ae.className='tc-v neutral';as2.textContent='meta: ≥3,5L';}
+  else if(agua>=3.5){ae.className='tc-v ok';as2.textContent='✓ hidratado';}
+  else{ae.className='tc-v nok';as2.textContent=`✗ faltam ${(3.5-agua).toFixed(1)}L`;}
+
+  const pct=Math.min(100,Math.round((kcal/2050)*100));
+  const fill=document.getElementById('barFill');
+  fill.style.width=pct+'%';
+  fill.style.background=kcal>2050?'var(--nok)':kcal>=1850?'var(--ok)':'var(--warn)';
+
+  const st=document.getElementById('saldoTxt');
+  if(livre){st.textContent='🎉 refeição livre — protocolo suspenso hoje';st.style.color='var(--text2)';}
+  else if(kcal===0){st.textContent='adicione alimentos para calcular';st.style.color='var(--text3)';}
+  else{const rem=2050-kcal;st.textContent=rem>=0?`saldo: +${rem} kcal disponíveis no dia`:`saldo: ${rem} kcal acima do teto (2.050)`;st.style.color=rem>=0?'var(--text2)':'var(--nok)';}
+
+  document.getElementById('copyBtn').textContent=`copiar para o notion → 📊 ${kcal} kcal · 💪 ${prot}g · 💧 ${agua.toFixed(1)}L`;
+}
+
+function copiar(){
+  const all=[...S.items.cafe,...S.items.almoco,...S.items.snack,...S.items.jantar];
+  const kcal=all.reduce((s,i)=>s+i.kcal,0);
+  const prot=parseFloat(all.reduce((s,i)=>s+i.protein,0).toFixed(1));
+  const agua=parseFloat(document.getElementById('agua').value)||0;
+  navigator.clipboard.writeText(`${kcal}\t${prot}\t${agua.toFixed(1)}`).then(()=>{
+    const b=document.getElementById('copyBtn'),o=b.textContent;
+    b.textContent='✓ copiado — cole nas 3 células do notion (kcal · prot · água)';
+    setTimeout(()=>{b.textContent=o;},3000);
+  }).catch(()=>prompt('Copie os valores:',`${kcal}\t${prot}\t${agua.toFixed(1)}`));
+}
+
+renderMeals(); atualizar();
+</script>
+</body>
+</html>
