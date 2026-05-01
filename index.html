@@ -130,6 +130,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .toast.loading-toast{background:rgba(92,156,245,0.1);border-color:rgba(92,156,245,0.2);color:var(--accent);}
 .toast.show{display:block;}
 
+
+/* ── Registro (copy panel) ── */
+.registro{display:none;margin-top:14px;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;}
+.registro.open{display:block;}
+.reg-header{background:var(--bg3);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.reg-title{font-size:13px;font-weight:600;color:var(--text);}
+.reg-date{font-size:12px;color:var(--accent);font-family:var(--mono);font-weight:600;}
+.reg-field{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+.reg-field:last-child{border-bottom:none;}
+.reg-field-left{flex:1;min-width:0;}
+.reg-field-label{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:3px;letter-spacing:.03em;}
+.reg-field-value{font-size:13px;color:var(--text2);line-height:1.5;word-break:break-word;}
+.reg-field-value.number{font-size:20px;font-weight:700;font-family:var(--mono);}
+.copy-field-btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:11px;padding:5px 10px;white-space:nowrap;flex-shrink:0;transition:all .15s;margin-top:2px;}
+.copy-field-btn:hover{background:var(--bg4);color:var(--text2);border-color:var(--border2);}
+.copy-field-btn.copied{color:var(--ok);border-color:var(--ok);}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
@@ -220,10 +237,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <!-- Actions -->
   <div class="btn-row">
     <button class="reg-btn" id="regBtn" onclick="registrarNotion()">📤 Salvar no Notion</button>
+    <button class="reg-btn" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);" onclick="abrirCopiar()">📋 Copiar campos</button>
     <button class="reset-btn" onclick="resetDia()">🗑 Limpar dia</button>
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Painel copiar -->
+  <div class="registro" id="registroPanel">
+    <div class="reg-header">
+      <span class="reg-title">copiar campos para o notion</span>
+      <span class="reg-date" id="regDate"></span>
+    </div>
+    <div id="regBody"></div>
+  </div>
 
 </div>
 <script>
@@ -735,6 +762,55 @@ async function registrarNotion() {
   btn.disabled = false;
   btn.textContent = '📤 Salvar no Notion';
   if (getToken()) btn.disabled = false;
+}
+
+
+// ── Copiar campos ──
+function mealText(key) {
+  const its = S.items[key];
+  return its.length ? its.map(it => it.name + ' (' + it.label + ')').join(', ') : '';
+}
+
+function abrirCopiar() {
+  const all = [...S.items.cafe,...S.items.almoco,...S.items.snack,...S.items.jantar];
+  if (!all.length) { mostrarToast('Adicione pelo menos um alimento antes de copiar', 'err'); return; }
+  const iso = document.getElementById('dataHoje').value || todayISO();
+  const { kcal, prot, agua, livre } = getTotals();
+  const deficitOk = livre ? null : (kcal >= 1850 && kcal <= 2050);
+  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < 1850 ? 'abaixo (' + kcal + ' kcal)' : 'acima (' + kcal + ' kcal)'));
+  document.getElementById('regDate').textContent = formatBR(iso);
+  const fields = [
+    { label:'☀️ Café da manhã',    value: mealText('cafe'),    type:'text' },
+    { label:'🍽️ Almoço',          value: mealText('almoco'),  type:'text' },
+    { label:'🍎 Snack(s)',         value: mealText('snack'),   type:'text' },
+    { label:'🌙 Jantar',           value: mealText('jantar'),  type:'text' },
+    { label:'📊 Total kcal',       value: String(kcal),        type:'number' },
+    { label:'💪 Proteína (g)',     value: String(prot),        type:'number' },
+    { label:'💧 Água (L)',         value: agua.toFixed(1),     type:'number' },
+    { label:'✅ Déficit?',         value: deficitTxt,          type:'text' },
+    { label:'🎉 Refeição livre?',  value: livre ? 'Sim ✓' : 'Não', type:'text' },
+  ];
+  document.getElementById('regBody').innerHTML = fields.map((f, idx) => 
+    '<div class="reg-field">' +
+      '<div class="reg-field-left">' +
+        '<div class="reg-field-label">' + f.label + '</div>' +
+        '<div class="reg-field-value ' + (f.type === 'number' ? 'number' : '') + '">' + f.value + '</div>' +
+      '</div>' +
+      '<button class="copy-field-btn" id="cfb-' + idx + '" onclick="copyField(\'' + f.value.replace(/'/g,"\\'") + '\',' + idx + ')">copiar</button>' +
+    '</div>'
+  ).join('');
+  const panel = document.getElementById('registroPanel');
+  panel.classList.add('open');
+  panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function copyField(value, idx) {
+  navigator.clipboard.writeText(value).then(() => {
+    const btn = document.getElementById('cfb-' + idx);
+    btn.textContent = '✓ copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => prompt('Copie:', value));
 }
 
 // ── Init ──
