@@ -155,7 +155,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <div class="token-bar" id="tokenBar">
     <span class="token-dot" id="tokenDot"></span>
     <span class="token-status" id="tokenStatus">notion não conectado</span>
-    <input type="password" class="token-in" id="tokenIn" placeholder="cole seu token secret_..." autocomplete="off">
+    <input type="password" class="token-in" id="tokenIn" placeholder="cole seu token ntn_ ou secret_..." autocomplete="off">
     <button class="token-save-btn" onclick="salvarToken()">conectar</button>
     <button class="token-clear-btn" id="tokenClearBtn" onclick="limparToken()" style="display:none;">desconectar</button>
   </div>
@@ -420,8 +420,8 @@ function formatBR(iso) {
 // ── Token ──
 function salvarToken() {
   const t = document.getElementById('tokenIn').value.trim();
-  if (!t || !t.startsWith('secret_')) {
-    mostrarToast('Token inválido — deve começar com secret_', 'err'); return;
+  if (!t || (!t.startsWith('secret_') && !t.startsWith('ntn_'))) {
+    mostrarToast('Token inválido — deve começar com secret_ ou ntn_', 'err'); return;
   }
   localStorage.setItem(TOKEN_KEY, t);
   document.getElementById('tokenIn').value = '';
