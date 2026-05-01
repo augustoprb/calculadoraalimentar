@@ -27,23 +27,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .hd-date{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 12px;font-family:var(--mono);font-size:12px;color:var(--text2);cursor:pointer;outline:none;flex-shrink:0;margin-top:4px;}
 .hd-date:focus{border-color:var(--border2);}
 
-/* ── Token setup ── */
-.token-bar{background:var(--bg2);border:1px solid rgba(255,180,0,0.2);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.token-bar.connected{border-color:rgba(82,196,122,0.3);background:rgba(82,196,122,0.05);}
-.token-dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex-shrink:0;}
-.token-bar.connected .token-dot{background:var(--ok);}
-.token-status{font-size:12px;color:var(--text2);flex:1;font-family:var(--mono);}
-.token-in{flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;}
-.token-in:focus{border-color:var(--border2);}
-.token-in::placeholder{color:var(--text3);}
-.token-save-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;padding:6px 12px;white-space:nowrap;transition:all .15s;}
-.token-save-btn:hover{background:var(--bg4);color:var(--text);}
-.token-clear-btn{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:11px;font-family:var(--mono);padding:0;transition:color .15s;}
-.token-clear-btn:hover{color:var(--nok);}
 
-/* ── Save indicator ── */
-.save-ind{font-size:11px;color:var(--text3);font-family:var(--mono);text-align:right;padding:2px 0 10px;transition:color .3s;min-height:22px;}
-.save-ind.saved{color:var(--ok);}
+
+
 
 /* ── Search ── */
 .search-wrap{position:relative;margin-bottom:10px;}
@@ -117,9 +103,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 
 /* ── Buttons ── */
 .btn-row{display:flex;gap:8px;}
-.reg-btn{flex:1;background:var(--accent);border:none;border-radius:var(--r);color:#fff;cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:700;padding:13px;transition:opacity .15s;}
-.reg-btn:hover:not(:disabled){opacity:.85;}
-.reg-btn:disabled{opacity:.4;cursor:not-allowed;}
+.reg-btn{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:700;padding:13px;transition:all .15s;}
+.reg-btn:hover{background:var(--bg4);color:var(--text);}
 .reset-btn{background:transparent;border:1px solid var(--border);border-radius:var(--r);color:var(--text3);cursor:pointer;font-family:var(--sans);font-size:12px;padding:13px 16px;transition:all .15s;white-space:nowrap;}
 .reset-btn:hover{background:var(--bg3);color:var(--nok);border-color:var(--nok);}
 
@@ -168,16 +153,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     </div>
   </div>
 
-  <!-- Token bar -->
-  <div class="token-bar" id="tokenBar">
-    <span class="token-dot" id="tokenDot"></span>
-    <span class="token-status" id="tokenStatus">notion não conectado</span>
-    <input type="password" class="token-in" id="tokenIn" placeholder="cole seu token ntn_ ou secret_..." autocomplete="off">
-    <button class="token-save-btn" onclick="salvarToken()">conectar</button>
-    <button class="token-clear-btn" id="tokenClearBtn" onclick="limparToken()" style="display:none;">desconectar</button>
-  </div>
-
-  <div class="save-ind" id="saveInd">—</div>
+  <div class="save-ind" id="saveInd" style="font-size:11px;color:var(--text3);font-family:var(--mono);text-align:right;padding:2px 0 10px;min-height:22px;">—</div>
 
   <!-- Search -->
   <div class="search-wrap">
@@ -236,8 +212,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 
   <!-- Actions -->
   <div class="btn-row">
-    <button class="reg-btn" id="regBtn" onclick="registrarNotion()">📤 Salvar no Notion</button>
-    <button class="reg-btn" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);" onclick="abrirCopiar()">📋 Copiar campos</button>
+    <button class="reg-btn" onclick="abrirCopiar()">📋 Copiar campos</button>
     <button class="reset-btn" onclick="resetDia()">🗑 Limpar dia</button>
   </div>
 
@@ -250,7 +225,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
       <span class="reg-date" id="regDate"></span>
     </div>
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);">
-      <button class="copy-field-btn" style="width:100%;text-align:center;padding:8px;" id="cfb-all" onclick="copyTudo()">📋 copiar tudo de uma vez</button>
+      <button class="copy-field-btn" style="width:100%;text-align:center;padding:8px;" id="cfb-all" onclick="copyTudo()">📋 copiar tudo de uma vez → 📝 Resumo do Dia</button>
     </div>
     <div id="regBody"></div>
   </div>
@@ -260,7 +235,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 // ── Constantes ──
 const DB_ID = '9be7df3b33c34019ab28194bf3a05ffc';
 const STORAGE_PREFIX = 'mc_diario_';
-const TOKEN_KEY = 'mc_notion_token';
 
 // ── Banco de alimentos ──
 const FOODS = [
@@ -447,45 +421,6 @@ function formatBR(iso) {
   return `${days[dt.getDay()]}, ${d}/${m}/${y}`;
 }
 
-// ── Token ──
-function salvarToken() {
-  const t = document.getElementById('tokenIn').value.trim();
-  if (!t || (!t.startsWith('secret_') && !t.startsWith('ntn_'))) {
-    mostrarToast('Token inválido — deve começar com secret_ ou ntn_', 'err'); return;
-  }
-  localStorage.setItem(TOKEN_KEY, t);
-  document.getElementById('tokenIn').value = '';
-  atualizarTokenUI(t);
-  mostrarToast('✓ Notion conectado com sucesso', 'ok');
-}
-function limparToken() {
-  if (!confirm('Desconectar do Notion?')) return;
-  localStorage.removeItem(TOKEN_KEY);
-  atualizarTokenUI(null);
-}
-function getToken() { return localStorage.getItem(TOKEN_KEY); }
-function atualizarTokenUI(token) {
-  const bar = document.getElementById('tokenBar');
-  const status = document.getElementById('tokenStatus');
-  const inp = document.getElementById('tokenIn');
-  const clearBtn = document.getElementById('tokenClearBtn');
-  const regBtn = document.getElementById('regBtn');
-  if (token) {
-    bar.classList.add('connected');
-    status.textContent = 'notion conectado ✓';
-    inp.style.display = 'none';
-    document.querySelector('.token-save-btn').style.display = 'none';
-    clearBtn.style.display = 'inline';
-    regBtn.disabled = false;
-  } else {
-    bar.classList.remove('connected');
-    status.textContent = 'notion não conectado';
-    inp.style.display = '';
-    document.querySelector('.token-save-btn').style.display = '';
-    clearBtn.style.display = 'none';
-    regBtn.disabled = true;
-  }
-}
 
 // ── localStorage ──
 function storageKey(iso) { return STORAGE_PREFIX + iso; }
@@ -686,86 +621,6 @@ function mealText(key) {
   return its.length ? its.map(it=>`${it.name} (${it.label})`).join(', ') : '';
 }
 
-async function registrarNotion() {
-  const token = getToken();
-  if (!token) { mostrarToast('Conecte o Notion primeiro', 'err'); return; }
-
-  const all = [...S.items.cafe,...S.items.almoco,...S.items.snack,...S.items.jantar];
-  if (!all.length) { mostrarToast('Adicione pelo menos um alimento antes de salvar', 'err'); return; }
-
-  const iso = document.getElementById('dataHoje').value || todayISO();
-  const { kcal, prot, agua, livre } = getTotals();
-  const deficitOk = livre ? null : (kcal >= 1850 && kcal <= 2050);
-  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : `❌ Não — ${kcal < 1850 ? `abaixo (${kcal} kcal)` : `acima (${kcal} kcal)`}`;
-
-  const btn = document.getElementById('regBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Salvando...';
-  mostrarToast('Buscando entrada no Notion...', 'loading');
-
-  try {
-    // 1. Busca a página pelo campo 📅 Data
-    const queryRes = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        filter: { property: '📅 Data', date: { equals: iso } }
-      })
-    });
-
-    if (!queryRes.ok) {
-      const err = await queryRes.json().catch(()=>({}));
-      throw new Error(err?.message || `Erro ${queryRes.status} ao buscar no Notion`);
-    }
-
-    const queryData = await queryRes.json();
-    if (!queryData.results || queryData.results.length === 0) {
-      throw new Error(`Nenhuma entrada encontrada para ${formatBR(iso)}. Verifique se o database foi restaurado e se a data ${iso} existe.`);
-    }
-
-    const pageId = queryData.results[0].id;
-
-    // 2. Atualiza a página
-    const updateRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        properties: {
-          '☀️ Café da manhã': { rich_text: [{ text: { content: mealText('cafe') } }] },
-          '🍽️ Almoço':       { rich_text: [{ text: { content: mealText('almoco') } }] },
-          '🍎 Snack(s)':      { rich_text: [{ text: { content: mealText('snack') } }] },
-          '🌙 Jantar':        { rich_text: [{ text: { content: mealText('jantar') } }] },
-          '📊 Total kcal':    { number: kcal },
-          '💪 Proteína (g)':  { number: prot },
-          '💧 Água (L)':      { number: agua },
-          '🎉 Refeição livre?':{ checkbox: livre },
-        }
-      })
-    });
-
-    if (!updateRes.ok) {
-      const err = await updateRes.json().catch(()=>({}));
-      throw new Error(err?.message || `Erro ${updateRes.status} ao atualizar Notion`);
-    }
-
-    mostrarToast(`✓ Salvo no Notion — ${formatBR(iso)} · ${kcal} kcal · ${deficitTxt}`, 'ok');
-
-  } catch(e) {
-    mostrarToast(`Erro: ${e.message}`, 'err');
-  }
-
-  btn.disabled = false;
-  btn.textContent = '📤 Salvar no Notion';
-  if (getToken()) btn.disabled = false;
-}
 
 
 // ── Copiar campos ──
@@ -790,7 +645,7 @@ function copyTudo() {
     '🍎 Snack(s): ' + (mealText('snack') || '—'),
     '🌙 Jantar: ' + (mealText('jantar') || '—'),
     '',
-    '📊 Total kcal: ' + kcal,
+    '📊 Total kcal: ' + kcal + ' kcal',
     '💪 Proteína: ' + prot + 'g',
     '💧 Água: ' + agua.toFixed(1) + 'L',
     '✅ Déficit: ' + deficitTxt,
@@ -799,9 +654,9 @@ function copyTudo() {
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('cfb-all');
-    btn.textContent = '✓ tudo copiado — cole onde quiser no notion';
+    btn.textContent = '✓ copiado — cole no campo 📝 Resumo do Dia do Notion';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '📋 copiar tudo de uma vez'; btn.classList.remove('copied'); }, 3000);
+    setTimeout(() => { btn.textContent = '📋 copiar tudo de uma vez → 📝 Resumo do Dia'; btn.classList.remove('copied'); }, 3000);
   }).catch(() => prompt('Copie:', text));
 }
 
@@ -853,7 +708,6 @@ function init() {
   carregarLocal(todayISO());
   renderMeals();
   atualizar();
-  atualizarTokenUI(getToken());
 }
 
 init();
