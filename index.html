@@ -249,6 +249,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
       <span class="reg-title">copiar campos para o notion</span>
       <span class="reg-date" id="regDate"></span>
     </div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);">
+      <button class="copy-field-btn" style="width:100%;text-align:center;padding:8px;" id="cfb-all" onclick="copyTudo()">📋 copiar tudo de uma vez</button>
+    </div>
     <div id="regBody"></div>
   </div>
 
@@ -769,6 +772,37 @@ async function registrarNotion() {
 function mealText(key) {
   const its = S.items[key];
   return its.length ? its.map(it => it.name + ' (' + it.label + ')').join(', ') : '';
+}
+
+
+function copyTudo() {
+  const all = [...S.items.cafe,...S.items.almoco,...S.items.snack,...S.items.jantar];
+  if (!all.length) return;
+  const iso = document.getElementById('dataHoje').value || todayISO();
+  const { kcal, prot, agua, livre } = getTotals();
+  const deficitOk = livre ? null : (kcal >= 1850 && kcal <= 2050);
+  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < 1850 ? 'abaixo (' + kcal + ' kcal)' : 'acima (' + kcal + ' kcal)'));
+  const lines = [
+    '📅 ' + formatBR(iso),
+    '',
+    '☀️ Café da manhã: ' + (mealText('cafe') || '—'),
+    '🍽️ Almoço: ' + (mealText('almoco') || '—'),
+    '🍎 Snack(s): ' + (mealText('snack') || '—'),
+    '🌙 Jantar: ' + (mealText('jantar') || '—'),
+    '',
+    '📊 Total kcal: ' + kcal,
+    '💪 Proteína: ' + prot + 'g',
+    '💧 Água: ' + agua.toFixed(1) + 'L',
+    '✅ Déficit: ' + deficitTxt,
+    '🎉 Refeição livre: ' + (livre ? 'Sim' : 'Não'),
+  ];
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('cfb-all');
+    btn.textContent = '✓ tudo copiado — cole onde quiser no notion';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 copiar tudo de uma vez'; btn.classList.remove('copied'); }, 3000);
+  }).catch(() => prompt('Copie:', text));
 }
 
 function abrirCopiar() {
