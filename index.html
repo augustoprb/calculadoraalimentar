@@ -147,7 +147,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
       <div>
         <div class="hd-tag">modo caverna</div>
         <div class="hd-title">🍽️ Diário Alimentar</div>
-        <div class="hd-meta">meta: 1.850–2.050 kcal · ≥115g prot · ≥3,5L água</div>
+        <div class="hd-meta" id="hdMeta">meta: 2.066–2.366 kcal · ≥120g prot · ≥3,5L água</div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+      <button onclick="setTipo('pedal36')" id="btn-pedal36" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--mono);transition:all .15s;">🚴 36min ⭐</button>
+      <button onclick="setTipo('pedal45')" id="btn-pedal45" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all .15s;">🚴 45min</button>
+      <button onclick="setTipo('pedal30')" id="btn-pedal30" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all .15s;">🚴 30min</button>
+      <button onclick="setTipo('forca')" id="btn-forca" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all .15s;">💪 Força</button>
+      <button onclick="setTipo('semPedal')" id="btn-semPedal" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all .15s;">🏠 Sem treino</button>
+      <span id="carboHint" style="font-size:11px;color:var(--text3);font-family:var(--mono);align-self:center;margin-left:4px;">arroz cozido: 180g</span>
+    </div>
       </div>
       <input type="date" class="hd-date" id="dataHoje" onchange="trocarDia()">
     </div>
@@ -210,6 +218,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <div class="bar"><div class="bar-fill" id="barFill" style="width:0%;background:var(--ok);"></div></div>
   <div class="saldo" id="saldoTxt" style="color:var(--text3);">adicione alimentos para calcular</div>
 
+  <!-- Belisco warning -->
+  <div id="beliscoWarn" style="display:none;font-size:12px;padding:8px 14px;border-radius:var(--r);background:rgba(232,168,50,0.08);border:1px solid rgba(232,168,50,0.25);color:var(--warn);margin-bottom:12px;font-family:var(--mono);">
+    ⚠️ Lembre-se: beliscos de cozinha (~150 kcal) não estão registrados. Reduza as porções principais em ~150 kcal para compensar.
+  </div>
+
   <!-- Actions -->
   <div class="btn-row">
     <button class="reg-btn" onclick="abrirCopiar()">📋 Copiar campos</button>
@@ -234,170 +247,442 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 <script>
 // ── Constantes ──
 const DB_ID = '9be7df3b33c34019ab28194bf3a05ffc';
+const METAS = {
+  pedal36: { kcalMin: 2066, kcalMax: 2366, label: '🚴 Pedal 36min ⭐', carbo: 180 },
+  pedal45: { kcalMin: 2164, kcalMax: 2464, label: '🚴 Pedal 45min', carbo: 220 },
+  pedal30: { kcalMin: 2001, kcalMax: 2301, label: '🚴 Pedal 30min', carbo: 150 },
+  forca:   { kcalMin: 1926, kcalMax: 2226, label: '💪 Força bodyweight', carbo: 100 },
+  semPedal:{ kcalMin: 1626, kcalMax: 1926, label: '🏠 Sem treino', carbo: 100 },
+};
+const PROT_META = 120;
+const GORDURA_META = 50;
 const STORAGE_PREFIX = 'mc_diario_';
 
 // ── Banco de alimentos ──
 const FOODS = [
-  {n:"Ovo inteiro cozido",k:146,p:13.3,u:'un',pw:50},
-  {n:"Ovo inteiro mexido c/ manteiga",k:184,p:12.0,u:'un',pw:55},
-  {n:"Ovo inteiro frito",k:196,p:13.1,u:'un',pw:55},
-  {n:"Ovo mexido sem manteiga",k:155,p:12.5,u:'un',pw:50},
+  // ── OVOS ──
+  {n:"Ovo inteiro cozido",k:155,p:13.0,u:'un',pw:50},
+  {n:"Ovo inteiro mexido c/ manteiga",k:166,p:11.0,u:'un',pw:55},
+  {n:"Ovo inteiro frito (1 colher de óleo)",k:196,p:13.6,u:'un',pw:55},
+  {n:"Ovo mexido sem manteiga",k:148,p:12.0,u:'un',pw:50},
+  {n:"Ovo pochê",k:143,p:12.5,u:'un',pw:50},
   {n:"Clara de ovo cozida",k:52,p:10.9,u:'un',pw:30},
   {n:"Gema de ovo cozida",k:322,p:15.9,u:'un',pw:18},
+  {n:"Omelete de queijo (2 ovos + 30g queijo)",k:240,p:18.0,u:'un',pw:130},
+
+  // ── LATICÍNIOS ──
   {n:"Leite integral",k:61,p:3.2,u:'ml'},
   {n:"Leite desnatado",k:35,p:3.4,u:'ml'},
   {n:"Leite semi-desnatado",k:47,p:3.3,u:'ml'},
   {n:"Leite em pó integral",k:496,p:26.0,u:'g'},
   {n:"Leite em pó desnatado",k:357,p:35.5,u:'g'},
   {n:"Leite condensado",k:321,p:7.4,u:'g'},
+  {n:"Creme de leite",k:212,p:2.4,u:'g'},
   {n:"Leite de coco",k:197,p:1.9,u:'ml'},
   {n:"Bebida vegetal de aveia",k:45,p:1.2,u:'ml'},
   {n:"Bebida vegetal de amêndoa",k:24,p:0.6,u:'ml'},
+  {n:"Bebida vegetal de soja",k:33,p:3.0,u:'ml'},
   {n:"Iogurte integral natural",k:66,p:3.8,u:'g'},
-  {n:"Iogurte grego integral",k:115,p:5.7,u:'g'},
+  {n:"Iogurte grego integral",k:97,p:9.0,u:'g'},
   {n:"Iogurte desnatado natural",k:43,p:4.1,u:'g'},
-  {n:"Queijo muçarela",k:314,p:25.0,u:'g'},
-  {n:"Queijo parmesão ralado",k:456,p:35.0,u:'g'},
-  {n:"Queijo cottage",k:98,p:11.0,u:'g'},
+  {n:"Coalhada",k:54,p:3.5,u:'g'},
+  {n:"Skyr natural",k:63,p:11.0,u:'g'},
+  {n:"Kefir leite integral",k:63,p:3.4,u:'ml'},
+
+  // ── QUEIJOS ──
+  {n:"Queijo muçarela",k:280,p:22.2,u:'g'},
+  {n:"Queijo prato",k:360,p:22.7,u:'g'},
+  {n:"Queijo parmesão ralado",k:431,p:35.7,u:'g'},
+  {n:"Queijo cottage",k:98,p:11.1,u:'g'},
   {n:"Queijo minas frescal",k:264,p:17.4,u:'g'},
+  {n:"Queijo minas padrão (meia cura)",k:299,p:25.9,u:'g'},
+  {n:"Queijo coalho",k:296,p:23.0,u:'g'},
+  {n:"Queijo gorgonzola",k:353,p:21.4,u:'g'},
+  {n:"Queijo gouda",k:356,p:24.9,u:'g'},
+  {n:"Queijo cheddar",k:403,p:25.0,u:'g'},
+  {n:"Queijo brie",k:334,p:20.8,u:'g'},
+  {n:"Queijo camembert",k:300,p:19.8,u:'g'},
+  {n:"Queijo provolone",k:351,p:25.6,u:'g'},
+  {n:"Queijo ricota",k:174,p:11.3,u:'g'},
   {n:"Cream cheese",k:342,p:5.9,u:'g'},
   {n:"Requeijão cremoso",k:253,p:7.5,u:'g'},
+  {n:"Requeijão light",k:175,p:9.0,u:'g'},
   {n:"Manteiga",k:717,p:0.9,u:'g'},
+  {n:"Manteiga ghee",k:898,p:0.0,u:'g'},
+
+  // ── CEREAIS, MASSAS E GRÃOS ──
   {n:"Arroz branco cozido",k:128,p:2.5,u:'g'},
   {n:"Arroz integral cozido",k:124,p:2.6,u:'g'},
-  {n:"Arroz branco cru",k:360,p:7.0,u:'g'},
+  {n:"Arroz parboilizado cozido",k:131,p:2.6,u:'g'},
+  {n:"Arroz branco cru",k:358,p:7.2,u:'g'},
+  {n:"Arroz integral cru",k:360,p:7.5,u:'g'},
+  {n:"Risoto pronto",k:166,p:3.4,u:'g'},
   {n:"Feijão carioca cozido",k:77,p:4.8,u:'g'},
-  {n:"Feijão preto cozido",k:86,p:5.3,u:'g'},
-  {n:"Feijão branco cozido",k:105,p:7.0,u:'g'},
+  {n:"Feijão preto cozido",k:77,p:4.5,u:'g'},
+  {n:"Feijão branco cozido",k:99,p:6.7,u:'g'},
+  {n:"Feijão vermelho cozido",k:93,p:6.6,u:'g'},
+  {n:"Feijão tropeiro",k:201,p:9.5,u:'g'},
+  {n:"Feijoada (média porção)",k:188,p:11.0,u:'g'},
   {n:"Grão-de-bico cozido",k:164,p:8.9,u:'g'},
   {n:"Lentilha cozida",k:93,p:6.3,u:'g'},
   {n:"Ervilha cozida",k:80,p:5.4,u:'g'},
   {n:"Macarrão cozido",k:158,p:5.5,u:'g'},
-  {n:"Macarrão integral cozido",k:149,p:5.8,u:'g'},
+  {n:"Macarrão integral cozido",k:124,p:5.3,u:'g'},
+  {n:"Macarrão grano duro cozido",k:131,p:5.0,u:'g'},
+  {n:"Lasanha à bolonhesa",k:175,p:9.5,u:'g'},
   {n:"Aveia em flocos",k:394,p:13.9,u:'g'},
   {n:"Farinha de aveia",k:389,p:14.6,u:'g'},
-  {n:"Granola",k:440,p:9.0,u:'g'},
-  {n:"Tapioca",k:346,p:0.7,u:'g'},
-  {n:"Cuscuz de milho cozido",k:92,p:2.0,u:'g'},
-  {n:"Pão francês",k:298,p:8.0,u:'un',pw:50},
-  {n:"Pão de forma integral",k:253,p:8.6,u:'un',pw:25},
+  {n:"Granola",k:471,p:9.1,u:'g'},
+  {n:"Tapioca",k:240,p:0.7,u:'g'},
+  {n:"Cuscuz de milho cozido",k:113,p:2.4,u:'g'},
+  {n:"Cuscuz marroquino cozido",k:112,p:3.8,u:'g'},
+  {n:"Quinoa cozida",k:120,p:4.4,u:'g'},
+  {n:"Polenta cozida",k:70,p:1.6,u:'g'},
+  {n:"Trigo para kibe cozido",k:120,p:3.5,u:'g'},
+
+  // ── PÃES ──
+  {n:"Pão francês",k:298,p:8.4,u:'un',pw:50},
+  {n:"Pão de forma integral",k:253,p:9.4,u:'un',pw:25},
   {n:"Pão de forma branco",k:267,p:8.0,u:'un',pw:25},
+  {n:"Pão sírio",k:275,p:9.1,u:'un',pw:60},
   {n:"Pão de queijo pequeno",k:307,p:6.8,u:'un',pw:25},
+  {n:"Pão de queijo grande",k:307,p:6.8,u:'un',pw:50},
+  {n:"Pão de hot dog",k:283,p:8.2,u:'un',pw:50},
+  {n:"Pão de hambúrguer",k:294,p:8.0,u:'un',pw:60},
+  {n:"Pão integral artesanal",k:230,p:9.0,u:'g'},
+  {n:"Pão wrap integral",k:286,p:9.0,u:'un',pw:40},
   {n:"Torrada integral",k:393,p:11.5,u:'un',pw:10},
-  {n:"Biscoito cream cracker",k:443,p:9.2,u:'un',pw:7},
-  {n:"Biscoito de arroz",k:384,p:8.0,u:'un',pw:10},
-  {n:"Frango peito grelhado s/ pele",k:163,p:31.5,u:'g'},
+  {n:"Biscoito cream cracker",k:434,p:9.4,u:'un',pw:7},
+  {n:"Biscoito de arroz integral",k:387,p:8.0,u:'un',pw:10},
+  {n:"Biscoito água e sal",k:432,p:9.5,u:'un',pw:7},
+
+  // ── FRANGO ──
+  {n:"Frango peito grelhado s/ pele",k:159,p:32.0,u:'g'},
+  {n:"Frango peito assado s/ pele",k:165,p:31.0,u:'g'},
+  {n:"Frango peito desfiado",k:155,p:31.5,u:'g'},
   {n:"Frango coxa s/ pele cozida",k:152,p:26.0,u:'g'},
+  {n:"Frango coxa c/ pele assada",k:215,p:24.0,u:'g'},
   {n:"Frango sobrecoxa s/ pele assada",k:160,p:22.0,u:'g'},
-  {n:"Frango sobrecoxa c/ pele assada",k:240,p:20.0,u:'g'},
-  {n:"Frango coxinha da asa c/ pele assada",k:240,p:20.0,u:'g'},
+  {n:"Frango sobrecoxa c/ pele assada",k:233,p:23.5,u:'g'},
+  {n:"Frango asa c/ pele assada",k:266,p:22.5,u:'g'},
+  {n:"Frango coxinha da asa c/ pele assada",k:240,p:24.0,u:'g'},
   {n:"Frango inteiro assado s/ pele",k:187,p:28.0,u:'g'},
-  {n:"Frango desfiado cozido",k:155,p:29.0,u:'g'},
-  {n:"Nugget de frango frito",k:257,p:15.0,u:'un',pw:15},
-  {n:"Carne bovina coxão mole grelhado",k:155,p:25.0,u:'g'},
-  {n:"Carne bovina patinho grelhado",k:153,p:27.0,u:'g'},
-  {n:"Carne moída refogada",k:195,p:22.0,u:'g'},
+  {n:"Frango à passarinho frito",k:292,p:24.0,u:'g'},
+  {n:"Strogonoff de frango",k:131,p:9.0,u:'g'},
+  {n:"Nugget de frango frito",k:296,p:14.0,u:'un',pw:15},
+  {n:"Salsicha de frango",k:222,p:11.0,u:'un',pw:50},
+  {n:"Hambúrguer de frango",k:200,p:18.0,u:'un',pw:80},
+
+  // ── CARNES BOVINAS ──
+  {n:"Acém em cubos cozido",k:189,p:27.0,u:'g'},
+  {n:"Acém moído refogado",k:212,p:25.0,u:'g'},
+  {n:"Coxão mole grelhado",k:143,p:26.0,u:'g'},
+  {n:"Coxão duro cozido",k:172,p:30.0,u:'g'},
+  {n:"Patinho grelhado",k:133,p:27.0,u:'g'},
+  {n:"Patinho moído refogado",k:212,p:26.0,u:'g'},
+  {n:"Carne moída magra refogada",k:179,p:24.6,u:'g'},
+  {n:"Carne moída comum refogada",k:212,p:22.0,u:'g'},
   {n:"Alcatra grelhada",k:163,p:28.0,u:'g'},
+  {n:"Maminha grelhada",k:218,p:27.0,u:'g'},
   {n:"Picanha grelhada",k:253,p:26.0,u:'g'},
-  {n:"Fígado bovino refogado",k:148,p:21.0,u:'g'},
-  {n:"Costela bovina cozida",k:294,p:20.0,u:'g'},
-  {n:"Filé mignon grelhado",k:195,p:29.0,u:'g'},
+  {n:"Filé mignon grelhado",k:191,p:32.0,u:'g'},
+  {n:"Contrafilé grelhado",k:228,p:29.0,u:'g'},
+  {n:"Cupim assado",k:340,p:23.0,u:'g'},
+  {n:"Costela bovina assada",k:294,p:20.0,u:'g'},
+  {n:"Fraldinha grelhada",k:215,p:27.0,u:'g'},
+  {n:"Lagarto cozido",k:183,p:30.0,u:'g'},
+  {n:"Músculo cozido (ensopado)",k:172,p:28.0,u:'g'},
+  {n:"Bife à milanesa",k:251,p:21.0,u:'g'},
+  {n:"Estrogonofe de carne",k:145,p:10.0,u:'g'},
   {n:"Carne seca cozida desfiada",k:285,p:42.0,u:'g'},
+  {n:"Charque cozido",k:215,p:30.0,u:'g'},
+  {n:"Língua bovina cozida",k:230,p:21.0,u:'g'},
+  {n:"Fígado bovino refogado",k:148,p:21.0,u:'g'},
+  {n:"Coração de boi grelhado",k:165,p:26.0,u:'g'},
   {n:"Hambúrguer bovino grelhado",k:235,p:17.0,u:'un',pw:90},
+  {n:"Almôndegas ao molho",k:170,p:14.0,u:'g'},
+
+  // ── PORCO E EMBUTIDOS ──
   {n:"Porco lombo assado",k:197,p:28.0,u:'g'},
   {n:"Porco pernil assado",k:217,p:26.0,u:'g'},
-  {n:"Linguiça calabresa grelhada",k:346,p:14.0,u:'g'},
-  {n:"Linguiça toscana grelhada",k:316,p:16.0,u:'g'},
+  {n:"Bisteca suína grelhada",k:242,p:27.0,u:'g'},
+  {n:"Costela suína assada",k:277,p:23.0,u:'g'},
+  {n:"Linguiça calabresa grelhada",k:300,p:14.5,u:'g'},
+  {n:"Linguiça toscana grelhada",k:262,p:18.0,u:'g'},
+  {n:"Linguiça suína grelhada",k:296,p:17.0,u:'g'},
+  {n:"Linguiça de frango grelhada",k:206,p:14.0,u:'g'},
   {n:"Presunto fatiado",k:130,p:17.0,u:'un',pw:15},
+  {n:"Presunto cru parma",k:269,p:25.0,u:'g'},
   {n:"Peito de peru fatiado",k:107,p:18.0,u:'un',pw:15},
+  {n:"Mortadela",k:265,p:11.5,u:'g'},
+  {n:"Salame",k:402,p:21.5,u:'g'},
   {n:"Salsicha cozida",k:267,p:12.0,u:'un',pw:50},
   {n:"Bacon grelhado",k:540,p:24.0,u:'g'},
-  {n:"Atum ao natural lata",k:100,p:22.4,u:'g'},
-  {n:"Atum em óleo lata drenado",k:200,p:26.0,u:'g'},
-  {n:"Sardinha ao molho de tomate lata",k:130,p:18.0,u:'g'},
-  {n:"Sardinha ao azeite lata",k:190,p:22.0,u:'g'},
-  {n:"Tilápia grelhada",k:96,p:20.0,u:'g'},
-  {n:"Salmão grelhado",k:182,p:24.0,u:'g'},
-  {n:"Camarão cozido",k:99,p:20.8,u:'g'},
+  {n:"Costela suína defumada",k:417,p:28.0,u:'g'},
+
+  // ── PEIXES E FRUTOS DO MAR ──
+  {n:"Atum ao natural lata (drenado)",k:116,p:25.5,u:'g'},
+  {n:"Atum em óleo lata drenado",k:198,p:25.5,u:'g'},
+  {n:"Atum fresco grelhado",k:184,p:30.0,u:'g'},
+  {n:"Sardinha ao molho de tomate lata",k:165,p:18.4,u:'g'},
+  {n:"Sardinha ao azeite lata",k:208,p:24.6,u:'g'},
+  {n:"Sardinha fresca grelhada",k:194,p:25.0,u:'g'},
+  {n:"Tilápia grelhada",k:128,p:26.0,u:'g'},
+  {n:"Tilápia frita",k:213,p:24.0,u:'g'},
+  {n:"Salmão grelhado",k:206,p:22.0,u:'g'},
+  {n:"Salmão assado",k:175,p:25.4,u:'g'},
+  {n:"Salmão defumado",k:117,p:18.0,u:'g'},
+  {n:"Truta grelhada",k:148,p:21.0,u:'g'},
+  {n:"Pescada grelhada",k:90,p:20.0,u:'g'},
+  {n:"Merluza grelhada",k:97,p:21.0,u:'g'},
+  {n:"Linguado grelhado",k:91,p:18.8,u:'g'},
+  {n:"Robalo grelhado",k:124,p:23.6,u:'g'},
+  {n:"Anchova grelhada",k:131,p:22.0,u:'g'},
+  {n:"Cavala grelhada",k:262,p:24.0,u:'g'},
+  {n:"Cação grelhado",k:130,p:21.0,u:'g'},
   {n:"Bacalhau dessalgado cozido",k:117,p:26.0,u:'g'},
+  {n:"Camarão cozido",k:99,p:20.8,u:'g'},
+  {n:"Camarão à milanesa",k:225,p:18.0,u:'g'},
+  {n:"Lula grelhada",k:104,p:18.0,u:'g'},
+  {n:"Polvo cozido",k:139,p:25.0,u:'g'},
+  {n:"Mexilhão cozido",k:172,p:24.0,u:'g'},
+  {n:"Ostra crua",k:81,p:9.5,u:'g'},
+  {n:"Sushi (média 1 peça)",k:45,p:1.5,u:'un',pw:20},
+  {n:"Sashimi de salmão",k:208,p:20.0,u:'g'},
+  {n:"Sashimi de atum",k:144,p:23.3,u:'g'},
+
+  // ── SUPLEMENTOS ──
   {n:"Whey protein concentrado",k:367,p:80.0,u:'g'},
   {n:"Whey protein isolado",k:373,p:90.0,u:'g'},
   {n:"Caseína",k:360,p:82.0,u:'g'},
+  {n:"Albumina",k:330,p:80.0,u:'g'},
+  {n:"Colágeno hidrolisado",k:360,p:90.0,u:'g'},
+  {n:"BCAA pó",k:18,p:4.0,u:'g'},
   {n:"Creatina monoidratada",k:0,p:0.0,u:'g'},
+  {n:"Maltodextrina",k:380,p:0.0,u:'g'},
+  {n:"Dextrose",k:380,p:0.0,u:'g'},
+
+  // ── FRUTAS ──
   {n:"Banana prata",k:98,p:1.3,u:'un',pw:100},
-  {n:"Banana nanica",k:92,p:1.2,u:'un',pw:90},
+  {n:"Banana nanica",k:92,p:1.4,u:'un',pw:90},
   {n:"Banana maçã",k:93,p:1.3,u:'un',pw:80},
+  {n:"Banana ouro",k:120,p:1.2,u:'un',pw:60},
   {n:"Maçã",k:56,p:0.3,u:'un',pw:150},
+  {n:"Maçã verde",k:52,p:0.4,u:'un',pw:150},
+  {n:"Pera",k:57,p:0.4,u:'un',pw:160},
   {n:"Laranja pera",k:37,p:1.0,u:'un',pw:130},
-  {n:"Tangerina",k:46,p:0.8,u:'un',pw:100},
+  {n:"Laranja lima",k:34,p:0.9,u:'un',pw:130},
+  {n:"Tangerina/mexerica",k:46,p:0.8,u:'un',pw:100},
+  {n:"Limão",k:32,p:0.6,u:'un',pw:80},
   {n:"Mamão papaia",k:40,p:0.5,u:'g'},
+  {n:"Mamão formosa",k:45,p:0.8,u:'g'},
   {n:"Abacate",k:96,p:1.2,u:'g'},
   {n:"Morango",k:30,p:0.7,u:'un',pw:12},
-  {n:"Uva",k:69,p:0.6,u:'g'},
-  {n:"Manga",k:64,p:0.4,u:'g'},
+  {n:"Uva itália",k:53,p:0.7,u:'g'},
+  {n:"Uva passa",k:299,p:3.1,u:'g'},
+  {n:"Manga palmer",k:64,p:0.4,u:'g'},
+  {n:"Manga tommy",k:60,p:0.5,u:'g'},
   {n:"Melancia",k:30,p:0.6,u:'g'},
-  {n:"Abacaxi",k:48,p:0.9,u:'g'},
-  {n:"Kiwi",k:61,p:1.1,u:'un',pw:70},
-  {n:"Pera",k:57,p:0.4,u:'un',pw:160},
   {n:"Melão",k:29,p:0.9,u:'g'},
-  {n:"Goiaba",k:54,p:2.6,u:'un',pw:100},
-  {n:"Açaí polpa",k:58,p:1.4,u:'g'},
+  {n:"Abacaxi",k:48,p:0.9,u:'g'},
+  {n:"Kiwi",k:51,p:1.1,u:'un',pw:70},
+  {n:"Goiaba vermelha",k:54,p:1.1,u:'un',pw:100},
+  {n:"Caju",k:43,p:1.0,u:'un',pw:60},
+  {n:"Açaí polpa pura",k:58,p:0.8,u:'g'},
+  {n:"Açaí da tigela (com xarope/granola)",k:174,p:1.3,u:'g'},
+  {n:"Maracujá polpa",k:68,p:2.0,u:'g'},
+  {n:"Pêssego",k:36,p:0.8,u:'un',pw:100},
+  {n:"Ameixa",k:53,p:0.8,u:'un',pw:60},
+  {n:"Ameixa preta seca",k:240,p:2.2,u:'un',pw:8},
+  {n:"Damasco seco",k:241,p:3.4,u:'un',pw:8},
+  {n:"Tâmara",k:282,p:2.5,u:'un',pw:8},
+  {n:"Cereja",k:63,p:1.0,u:'g'},
+  {n:"Romã (sementes)",k:83,p:1.7,u:'g'},
+  {n:"Caqui",k:71,p:0.4,u:'un',pw:100},
+  {n:"Coco fresco",k:354,p:3.3,u:'g'},
+  {n:"Coco ralado seco",k:660,p:7.0,u:'g'},
+  {n:"Mirtilo (blueberry)",k:57,p:0.7,u:'g'},
+  {n:"Framboesa",k:52,p:1.2,u:'g'},
+  {n:"Amora",k:43,p:1.4,u:'g'},
+
+  // ── TUBÉRCULOS E RAÍZES ──
   {n:"Batata inglesa cozida",k:52,p:1.2,u:'g'},
+  {n:"Batata inglesa assada",k:88,p:1.7,u:'g'},
+  {n:"Batata inglesa frita",k:312,p:3.4,u:'g'},
   {n:"Batata doce cozida",k:77,p:1.4,u:'g'},
-  {n:"Batata frita",k:312,p:3.4,u:'g'},
+  {n:"Batata doce assada",k:90,p:1.3,u:'g'},
+  {n:"Batata baroa cozida",k:80,p:1.5,u:'g'},
   {n:"Mandioca cozida",k:125,p:0.6,u:'g'},
-  {n:"Inhame cozido",k:93,p:2.1,u:'g'},
+  {n:"Mandioca frita",k:255,p:1.0,u:'g'},
+  {n:"Inhame cozido",k:97,p:2.1,u:'g'},
+  {n:"Cará cozido",k:108,p:1.5,u:'g'},
+  {n:"Macaxeira frita",k:220,p:1.0,u:'g'},
+  {n:"Purê de batata",k:107,p:2.0,u:'g'},
+
+  // ── VERDURAS E LEGUMES ──
   {n:"Abobrinha refogada",k:22,p:1.8,u:'g'},
+  {n:"Abóbora cozida",k:25,p:1.0,u:'g'},
   {n:"Brócolis cozido",k:35,p:2.9,u:'g'},
   {n:"Couve-flor cozida",k:25,p:2.4,u:'g'},
   {n:"Cenoura crua",k:34,p:1.3,u:'g'},
-  {n:"Alface",k:11,p:1.3,u:'g'},
+  {n:"Cenoura cozida",k:24,p:0.8,u:'g'},
+  {n:"Alface americana",k:14,p:0.9,u:'g'},
+  {n:"Alface crespa",k:11,p:1.3,u:'g'},
+  {n:"Rúcula",k:23,p:2.6,u:'g'},
+  {n:"Agrião",k:17,p:2.4,u:'g'},
   {n:"Tomate",k:15,p:1.1,u:'un',pw:100},
+  {n:"Tomate cereja",k:18,p:0.9,u:'un',pw:8},
   {n:"Pepino",k:10,p:0.7,u:'g'},
   {n:"Espinafre cozido",k:23,p:2.9,u:'g'},
+  {n:"Espinafre cru",k:22,p:2.7,u:'g'},
   {n:"Chuchu cozido",k:22,p:0.9,u:'g'},
   {n:"Couve refogada",k:45,p:3.7,u:'g'},
+  {n:"Couve crua",k:27,p:3.3,u:'g'},
+  {n:"Repolho cozido",k:20,p:1.0,u:'g'},
   {n:"Beterraba cozida",k:43,p:1.9,u:'g'},
   {n:"Quiabo cozido",k:25,p:2.0,u:'g'},
   {n:"Vagem cozida",k:29,p:1.7,u:'g'},
   {n:"Berinjela refogada",k:24,p:1.2,u:'g'},
-  {n:"Pimentão",k:21,p:0.9,u:'g'},
-  {n:"Milho cozido",k:74,p:2.7,u:'g'},
+  {n:"Pimentão verde",k:21,p:0.9,u:'g'},
+  {n:"Pimentão vermelho",k:31,p:1.0,u:'g'},
+  {n:"Pimentão amarelo",k:27,p:1.0,u:'g'},
+  {n:"Milho cozido",k:98,p:3.4,u:'g'},
+  {n:"Milho lata",k:81,p:2.7,u:'g'},
   {n:"Palmito pupunha",k:28,p:2.4,u:'g'},
-  {n:"Azeite de oliva",k:884,p:0.0,u:'ml'},
+  {n:"Aspargo cozido",k:22,p:2.4,u:'g'},
+  {n:"Cogumelo Paris cozido",k:35,p:3.1,u:'g'},
+  {n:"Shiitake cozido",k:55,p:1.6,u:'g'},
+  {n:"Shimeji refogado",k:27,p:2.5,u:'g'},
+  {n:"Cebola refogada",k:60,p:1.3,u:'g'},
+  {n:"Alho",k:113,p:7.0,u:'g'},
+  {n:"Salsa/cheiro-verde",k:36,p:3.0,u:'g'},
+  {n:"Manjericão fresco",k:23,p:3.2,u:'g'},
+  {n:"Salada caprese (queijo+tomate+manjericão)",k:135,p:7.0,u:'g'},
+
+  // ── GORDURAS E ÓLEOS ──
+  {n:"Azeite de oliva extravirgem",k:884,p:0.0,u:'ml'},
   {n:"Óleo de coco",k:862,p:0.0,u:'ml'},
   {n:"Óleo de soja",k:884,p:0.0,u:'ml'},
-  {n:"Maionese",k:658,p:1.5,u:'g'},
+  {n:"Óleo de canola",k:884,p:0.0,u:'ml'},
+  {n:"Óleo de gergelim",k:884,p:0.0,u:'ml'},
+  {n:"Maionese tradicional",k:658,p:1.5,u:'g'},
+  {n:"Maionese light",k:300,p:0.9,u:'g'},
+  {n:"Margarina",k:596,p:0.6,u:'g'},
+
+  // ── OLEAGINOSAS E SEMENTES ──
   {n:"Amendoim torrado s/ sal",k:567,p:25.0,u:'g'},
-  {n:"Pasta de amendoim integral",k:598,p:25.0,u:'g'},
+  {n:"Amendoim japonês",k:472,p:18.0,u:'g'},
+  {n:"Pasta de amendoim integral",k:589,p:25.0,u:'g'},
   {n:"Castanha do Pará",k:656,p:14.3,u:'un',pw:5},
   {n:"Castanha de caju torrada",k:570,p:15.3,u:'un',pw:5},
+  {n:"Castanha portuguesa cozida",k:153,p:2.2,u:'un',pw:8},
   {n:"Amêndoa",k:579,p:21.2,u:'un',pw:1.2},
+  {n:"Avelã",k:628,p:14.9,u:'un',pw:1.5},
   {n:"Nozes",k:654,p:15.2,u:'un',pw:4},
+  {n:"Pistache",k:560,p:20.6,u:'un',pw:0.7},
+  {n:"Macadâmia",k:718,p:7.9,u:'un',pw:2},
+  {n:"Pinhão cozido",k:174,p:5.5,u:'g'},
   {n:"Chia",k:486,p:17.0,u:'g'},
-  {n:"Linhaça",k:534,p:18.1,u:'g'},
+  {n:"Linhaça dourada",k:534,p:18.3,u:'g'},
+  {n:"Gergelim",k:573,p:17.7,u:'g'},
+  {n:"Semente de girassol",k:584,p:20.8,u:'g'},
+  {n:"Semente de abóbora",k:559,p:30.2,u:'g'},
+
+  // ── DOCES E AÇÚCARES ──
   {n:"Açúcar refinado",k:387,p:0.0,u:'g'},
+  {n:"Açúcar mascavo",k:380,p:0.0,u:'g'},
+  {n:"Açúcar demerara",k:399,p:0.0,u:'g'},
+  {n:"Adoçante stevia",k:0,p:0.0,u:'g'},
   {n:"Mel",k:304,p:0.3,u:'g'},
+  {n:"Geleia de frutas",k:278,p:0.4,u:'g'},
+  {n:"Doce de leite pastoso",k:315,p:6.8,u:'g'},
+  {n:"Goiabada",k:285,p:0.6,u:'g'},
+
+  // ── BEBIDAS ──
   {n:"Café preto sem açúcar",k:2,p:0.3,u:'ml'},
-  {n:"Café com leite (200ml integral)",k:88,p:3.7,u:'un',pw:200},
+  {n:"Café com leite (200ml integral)",k:88,p:6.5,u:'un',pw:200},
+  {n:"Cappuccino",k:62,p:3.5,u:'ml'},
   {n:"Chá preto sem açúcar",k:1,p:0.1,u:'ml'},
+  {n:"Chá verde sem açúcar",k:1,p:0.0,u:'ml'},
   {n:"Suco de laranja natural",k:45,p:0.7,u:'ml'},
+  {n:"Suco de uva integral",k:60,p:0.4,u:'ml'},
+  {n:"Suco de maracujá adoçado",k:50,p:0.5,u:'ml'},
+  {n:"Suco verde (couve+limão+maçã)",k:40,p:1.0,u:'ml'},
+  {n:"Vitamina banana c/ leite",k:90,p:3.0,u:'ml'},
   {n:"Água de coco",k:19,p:0.7,u:'ml'},
-  {n:"Refrigerante cola",k:41,p:0.0,u:'ml'},
-  {n:"Refrigerante zero",k:1,p:0.0,u:'ml'},
+  {n:"Refrigerante cola",k:42,p:0.0,u:'ml'},
+  {n:"Refrigerante guaraná",k:42,p:0.0,u:'ml'},
+  {n:"Refrigerante zero/diet",k:1,p:0.0,u:'ml'},
   {n:"Cerveja long neck",k:43,p:0.5,u:'un',pw:355},
   {n:"Cerveja lata 350ml",k:43,p:0.5,u:'un',pw:350},
-  {n:"Vinho tinto seco (taça 150ml)",k:68,p:0.1,u:'un',pw:150},
-  {n:"Chocolate meio amargo 70%",k:598,p:7.8,u:'g'},
+  {n:"Vinho tinto seco (taça 150ml)",k:85,p:0.1,u:'un',pw:150},
+  {n:"Vinho branco seco (taça 150ml)",k:82,p:0.1,u:'un',pw:150},
+  {n:"Espumante (taça 100ml)",k:81,p:0.2,u:'un',pw:100},
+  {n:"Caipirinha (cachaça+limão+açúcar)",k:153,p:0.0,u:'ml'},
+  {n:"Whisky dose 50ml",k:250,p:0.0,u:'un',pw:50},
+  {n:"Vodka dose 50ml",k:231,p:0.0,u:'un',pw:50},
+  {n:"Energético (Red Bull lata 250ml)",k:45,p:0.0,u:'un',pw:250},
+  {n:"Isotônico (Gatorade 500ml)",k:25,p:0.0,u:'ml'},
+
+  // ── CHOCOLATES, SOBREMESAS E SNACKS ──
+  {n:"Chocolate amargo 70%",k:579,p:7.8,u:'g'},
+  {n:"Chocolate amargo 85%",k:601,p:8.5,u:'g'},
   {n:"Chocolate ao leite",k:535,p:7.7,u:'g'},
+  {n:"Chocolate branco",k:551,p:5.9,u:'g'},
+  {n:"Chocolate Hershey's Ovomaltine",k:526,p:6.5,u:'g'},
+  {n:"Bombom (média)",k:480,p:5.0,u:'un',pw:15},
+  {n:"Brigadeiro pequeno",k:130,p:1.5,u:'un',pw:25},
+  {n:"Beijinho pequeno",k:120,p:1.5,u:'un',pw:25},
+  {n:"Pão de mel coberto",k:392,p:4.0,u:'un',pw:30},
   {n:"Pipoca caseira s/ manteiga",k:387,p:12.0,u:'g'},
   {n:"Pipoca microondas manteiga",k:434,p:9.5,u:'g'},
-  {n:"Batata chips",k:536,p:6.0,u:'g'},
-  {n:"Sorvete de creme",k:186,p:3.5,u:'g'},
-  {n:"Brigadeiro",k:390,p:5.0,u:'un',pw:20},
+  {n:"Pipoca de cinema (manteiga)",k:516,p:7.0,u:'g'},
+  {n:"Batata chips (Ruffles)",k:536,p:6.0,u:'g'},
+  {n:"Doritos",k:498,p:7.0,u:'g'},
+  {n:"Cheetos",k:516,p:6.5,u:'g'},
+  {n:"Sorvete de creme",k:207,p:3.5,u:'g'},
+  {n:"Sorvete de chocolate",k:216,p:3.8,u:'g'},
+  {n:"Picolé de fruta",k:90,p:0.5,u:'un',pw:60},
+  {n:"Pudim de leite condensado",k:215,p:5.5,u:'g'},
+  {n:"Mousse de chocolate",k:225,p:4.5,u:'g'},
+  {n:"Bolo de chocolate (caseiro)",k:367,p:5.5,u:'g'},
+  {n:"Bolo de cenoura c/ cobertura",k:374,p:4.5,u:'g'},
+  {n:"Brownie",k:466,p:6.0,u:'un',pw:50},
+  {n:"Cookie chocolate",k:480,p:5.5,u:'un',pw:15},
+  {n:"Biscoito recheado (Bono/Negresco)",k:480,p:5.0,u:'un',pw:13},
+
+  // ── FAST FOOD E PREPARADOS ──
+  {n:"Pizza muçarela (1 fatia média)",k:266,p:11.0,u:'un',pw:100},
+  {n:"Pizza calabresa (1 fatia média)",k:288,p:12.0,u:'un',pw:100},
+  {n:"Pizza portuguesa (1 fatia média)",k:268,p:13.0,u:'un',pw:100},
+  {n:"Hambúrguer Big Mac",k:563,p:25.5,u:'un',pw:215},
+  {n:"Hambúrguer caseiro c/ pão e queijo",k:380,p:22.0,u:'un',pw:180},
+  {n:"X-burger simples",k:295,p:18.0,u:'un',pw:150},
+  {n:"X-salada",k:340,p:20.0,u:'un',pw:180},
+  {n:"Coxinha de frango",k:317,p:8.5,u:'un',pw:80},
+  {n:"Esfiha de carne",k:230,p:9.0,u:'un',pw:60},
+  {n:"Pastel frito de carne",k:295,p:9.5,u:'un',pw:80},
+  {n:"Pastel frito de queijo",k:308,p:10.0,u:'un',pw:80},
+  {n:"Quibe assado",k:150,p:9.5,u:'un',pw:60},
+  {n:"Empada de frango",k:330,p:8.0,u:'un',pw:60},
+  {n:"Sanduíche natural",k:230,p:11.0,u:'un',pw:120},
+  {n:"Sanduíche peito de peru",k:250,p:18.0,u:'un',pw:130},
+  {n:"Tapioca c/ queijo e ovo",k:285,p:16.0,u:'un',pw:120},
+  {n:"Crepioca (1 ovo + 1 col chia)",k:155,p:12.0,u:'un',pw:80},
+  {n:"Yakissoba misto",k:128,p:7.0,u:'g'},
+  {n:"Temaki de salmão",k:380,p:18.0,u:'un',pw:130},
+
+  // ── CONDIMENTOS ──
   {n:"Caldo de frango cubo",k:51,p:1.1,u:'un',pw:10},
-  {n:"Molho shoyu",k:56,p:5.0,u:'ml'},
+  {n:"Molho shoyu",k:53,p:6.0,u:'ml'},
   {n:"Ketchup",k:100,p:1.5,u:'g'},
+  {n:"Mostarda",k:66,p:4.4,u:'g'},
+  {n:"Molho barbecue",k:172,p:0.8,u:'g'},
+  {n:"Molho de tomate (sugo)",k:55,p:1.6,u:'g'},
+  {n:"Molho branco caseiro",k:120,p:3.5,u:'g'},
+  {n:"Molho rosé",k:430,p:1.0,u:'g'},
+  {n:"Vinagre",k:21,p:0.0,u:'ml'},
+  {n:"Limão (suco)",k:25,p:0.4,u:'ml'},
 ];
 
 // ── Estado ──
@@ -577,22 +862,41 @@ function getTotals() {
   };
 }
 
+function setTipo(tipo) {
+  window._tipo = tipo;
+  const btns = ['pedal36','pedal45','pedal30','forca','semPedal'];
+  btns.forEach(b => {
+    const el = document.getElementById('btn-' + b);
+    if (b === tipo) { el.style.background='var(--accent)'; el.style.color='#fff'; el.style.borderColor='var(--accent)'; }
+    else { el.style.background='var(--bg3)'; el.style.color='var(--text2)'; el.style.borderColor='var(--border)'; }
+  });
+  const m = METAS[tipo];
+  document.getElementById('hdMeta').textContent = 'meta: ' + m.kcalMin + '–' + m.kcalMax + ' kcal · ≥' + PROT_META + 'g prot · ~50g gord · ≥3,5L água';
+  document.getElementById('carboHint').textContent = 'arroz cozido: ' + m.carbo + 'g';
+  atualizar();
+}
+
+function getMeta() { return METAS[window._tipo || 'pedal45']; }
+
 function atualizar() {
   const { kcal, prot, agua, livre } = getTotals();
+  const meta = getMeta();
+  const kcalMin = meta.kcalMin;
+  const kcalMax = meta.kcalMax;
 
   const ke=document.getElementById('tv-kcal'), ks=document.getElementById('ts-kcal');
   ke.textContent = kcal;
-  if (livre)            { ke.className='tc-v neutral'; ks.textContent='🎉 refeição livre'; }
-  else if (kcal===0)    { ke.className='tc-v neutral'; ks.textContent='meta: 1.850–2.050'; }
-  else if (kcal>=1850&&kcal<=2050) { ke.className='tc-v ok'; ks.textContent='✓ protocolo ok'; }
-  else if (kcal<1850)   { ke.className='tc-v nok'; ks.textContent=`✗ faltam ${1850-kcal} kcal`; }
-  else                  { ke.className='tc-v nok'; ks.textContent=`✗ ${kcal-2050} acima`; }
+  if (livre)               { ke.className='tc-v neutral'; ks.textContent='🎉 refeição livre'; }
+  else if (kcal===0)       { ke.className='tc-v neutral'; ks.textContent='meta: '+kcalMin+'–'+kcalMax; }
+  else if (kcal>=kcalMin&&kcal<=kcalMax) { ke.className='tc-v ok'; ks.textContent='✓ protocolo ok'; }
+  else if (kcal<kcalMin)   { ke.className='tc-v nok'; ks.textContent='✗ faltam '+(kcalMin-kcal)+' kcal'; }
+  else                     { ke.className='tc-v nok'; ks.textContent='✗ '+(kcal-kcalMax)+' acima'; }
 
   const pe=document.getElementById('tv-prot'), ps=document.getElementById('ts-prot');
   pe.textContent = prot;
-  if (prot===0)       { pe.className='tc-v neutral'; ps.textContent='meta: ≥115g'; }
-  else if (prot>=115) { pe.className='tc-v ok'; ps.textContent='✓ meta atingida'; }
-  else                { pe.className='tc-v nok'; ps.textContent=`✗ faltam ${(115-prot).toFixed(1)}g`; }
+  if (prot===0)       { pe.className='tc-v neutral'; ps.textContent='meta: ≥'+PROT_META+'g'; }
+  else if (prot>=PROT_META) { pe.className='tc-v ok'; ps.textContent='✓ meta atingida'; }
+  else                { pe.className='tc-v nok'; ps.textContent='✗ faltam '+(PROT_META-prot).toFixed(1)+'g'; }
 
   const ae=document.getElementById('tv-agua'), as_=document.getElementById('ts-agua');
   ae.textContent = agua.toFixed(1);
@@ -600,17 +904,22 @@ function atualizar() {
   else if (agua>=3.5) { ae.className='tc-v ok'; as_.textContent='✓ hidratado'; }
   else                { ae.className='tc-v nok'; as_.textContent=`✗ faltam ${(3.5-agua).toFixed(1)}L`; }
 
-  const pct = Math.min(100, Math.round((kcal/2050)*100));
+  const pct = Math.min(100, Math.round((kcal/kcalMax)*100));
   const fill = document.getElementById('barFill');
   fill.style.width = pct+'%';
   fill.style.background = kcal>2050?'var(--nok)':kcal>=1850?'var(--ok)':'var(--warn)';
 
   const st = document.getElementById('saldoTxt');
+  // Belisco warning
+  const beliscoWarn = document.getElementById('beliscoWarn');
+  if (beliscoWarn) {
+    beliscoWarn.style.display = (kcal > 1800 && !livre) ? 'block' : 'none';
+  }
   if (livre)      { st.textContent='🎉 refeição livre — protocolo suspenso hoje'; st.style.color='var(--text2)'; }
   else if (kcal===0) { st.textContent='adicione alimentos para calcular'; st.style.color='var(--text3)'; }
   else {
-    const rem = 2050 - kcal;
-    st.textContent = rem>=0 ? `saldo: +${rem} kcal disponíveis` : `saldo: ${rem} kcal acima do teto`;
+    const rem = kcalMax - kcal;
+    st.textContent = rem>=0 ? 'saldo: +'+rem+' kcal disponíveis' : 'saldo: '+rem+' kcal acima do teto ('+kcalMax+')';
     st.style.color = rem>=0 ? 'var(--text2)' : 'var(--nok)';
   }
 }
@@ -635,10 +944,10 @@ function copyTudo() {
   if (!all.length) return;
   const iso = document.getElementById('dataHoje').value || todayISO();
   const { kcal, prot, agua, livre } = getTotals();
-  const deficitOk = livre ? null : (kcal >= 1850 && kcal <= 2050);
-  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < 1850 ? 'abaixo (' + kcal + ' kcal)' : 'acima (' + kcal + ' kcal)'));
+  const meta = getMeta(); const deficitOk = livre ? null : (kcal >= meta.kcalMin && kcal <= meta.kcalMax);
+  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < (getMeta().kcalMin) ? 'abaixo (' + kcal + ' kcal, meta ' + getMeta().kcalMin + ')' : 'acima (' + kcal + ' kcal, teto ' + getMeta().kcalMax + ')'));
   const lines = [
-    '📅 ' + formatBR(iso),
+    '📅 ' + formatBR(iso) + ' · ' + getMeta().label,
     '',
     '☀️ Café da manhã: ' + (mealText('cafe') || '—'),
     '🍽️ Almoço: ' + (mealText('almoco') || '—'),
@@ -665,8 +974,8 @@ function abrirCopiar() {
   if (!all.length) { mostrarToast('Adicione pelo menos um alimento antes de copiar', 'err'); return; }
   const iso = document.getElementById('dataHoje').value || todayISO();
   const { kcal, prot, agua, livre } = getTotals();
-  const deficitOk = livre ? null : (kcal >= 1850 && kcal <= 2050);
-  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < 1850 ? 'abaixo (' + kcal + ' kcal)' : 'acima (' + kcal + ' kcal)'));
+  const meta = getMeta(); const deficitOk = livre ? null : (kcal >= meta.kcalMin && kcal <= meta.kcalMax);
+  const deficitTxt = livre ? '🎉 Refeição livre' : deficitOk ? '✅ Sim — dentro do protocolo' : ('❌ Não — ' + (kcal < (getMeta().kcalMin) ? 'abaixo (' + kcal + ' kcal, meta ' + getMeta().kcalMin + ')' : 'acima (' + kcal + ' kcal, teto ' + getMeta().kcalMax + ')'));
   document.getElementById('regDate').textContent = formatBR(iso);
   const fields = [
     { label:'☀️ Café da manhã',    value: mealText('cafe'),    type:'text' },
@@ -704,6 +1013,7 @@ function copyField(value, idx) {
 
 // ── Init ──
 function init() {
+  window._tipo = 'pedal36';
   document.getElementById('dataHoje').value = todayISO();
   carregarLocal(todayISO());
   renderMeals();
