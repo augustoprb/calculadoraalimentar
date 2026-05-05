@@ -961,12 +961,41 @@ function copyTudo() {
     '🎉 Refeição livre: ' + (livre ? 'Sim' : 'Não'),
   ];
   const text = lines.join('\n');
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('cfb-all');
+  const btn = document.getElementById('cfb-all');
+  if (copyToClipboard(text)) {
     btn.textContent = '✓ copiado — cole no campo 📝 Resumo do Dia do Notion';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '📋 copiar tudo de uma vez → 📝 Resumo do Dia'; btn.classList.remove('copied'); }, 3000);
-  }).catch(() => prompt('Copie:', text));
+  } else {
+    prompt('Copie manualmente (Cmd+C):', text);
+  }
+}
+
+// Universal copy that works in iframes (Notion embed)
+function copyToClipboard(text) {
+  // Try modern API first
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      navigator.clipboard.writeText(text);
+      return true;
+    } catch(e) { /* fallback */ }
+  }
+  // Fallback: textarea + execCommand (works in iframes)
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch(e) {
+    return false;
+  }
 }
 
 function abrirCopiar() {
@@ -1003,12 +1032,14 @@ function abrirCopiar() {
 }
 
 function copyField(value, idx) {
-  navigator.clipboard.writeText(value).then(() => {
-    const btn = document.getElementById('cfb-' + idx);
+  const btn = document.getElementById('cfb-' + idx);
+  if (copyToClipboard(value)) {
     btn.textContent = '✓ copiado';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
-  }).catch(() => prompt('Copie:', value));
+  } else {
+    prompt('Copie manualmente (Cmd+C):', value);
+  }
 }
 
 // ── Init ──
